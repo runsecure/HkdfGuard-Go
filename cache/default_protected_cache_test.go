@@ -47,7 +47,7 @@ func newTestDataEncryptionKey(t *testing.T) abstractions.DataEncryptionKey {
 }
 
 func TestProtectedCache_Add_EncryptsAndStores(t *testing.T) {
-	sut := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	sut := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	plaintext := []byte("top secret")
 	expected := append([]byte(nil), plaintext...)
 
@@ -66,7 +66,7 @@ func TestProtectedCache_Add_EncryptsAndStores(t *testing.T) {
 }
 
 func TestProtectedCache_Add_DuplicateName_ReturnsError(t *testing.T) {
-	sut := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	sut := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	if err := sut.Add("name", []byte("first")); err != nil {
 		t.Fatalf("first Add() error = %v", err)
 	}
@@ -77,7 +77,7 @@ func TestProtectedCache_Add_DuplicateName_ReturnsError(t *testing.T) {
 }
 
 func TestProtectedCache_Add_DuplicateName_IsCaseInsensitive(t *testing.T) {
-	sut := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	sut := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	if err := sut.Add("Name", []byte("first")); err != nil {
 		t.Fatalf("first Add() error = %v", err)
 	}
@@ -88,7 +88,7 @@ func TestProtectedCache_Add_DuplicateName_IsCaseInsensitive(t *testing.T) {
 }
 
 func TestProtectedCache_AddOrUpdate_ReplacesExistingValue(t *testing.T) {
-	sut := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	sut := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	if err := sut.AddOrUpdate("name", []byte("first")); err != nil {
 		t.Fatalf("first AddOrUpdate() error = %v", err)
 	}
@@ -107,7 +107,7 @@ func TestProtectedCache_AddOrUpdate_ReplacesExistingValue(t *testing.T) {
 }
 
 func TestProtectedCache_Decrypt_MissingName_ReturnsZero(t *testing.T) {
-	sut := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	sut := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 
 	written, err := sut.Decrypt("missing", make([]byte, 16))
 	if err != nil {
@@ -119,7 +119,7 @@ func TestProtectedCache_Decrypt_MissingName_ReturnsZero(t *testing.T) {
 }
 
 func TestProtectedCache_TryGetMaxDecryptedLength_PresentName_ReturnsEncryptedLength(t *testing.T) {
-	sut := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	sut := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	if err := sut.Add("name", []byte("top secret")); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}

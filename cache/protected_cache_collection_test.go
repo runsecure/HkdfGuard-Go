@@ -3,8 +3,8 @@ package cache
 import "testing"
 
 func TestProtectedCacheCollection_Decrypt_ChecksSourcesInOrder(t *testing.T) {
-	first := NewProtectedCache(newTestDataEncryptionKey(t), nil)
-	second := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	first := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
+	second := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	if err := second.Add("name", []byte("from-second")); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
@@ -22,8 +22,8 @@ func TestProtectedCacheCollection_Decrypt_ChecksSourcesInOrder(t *testing.T) {
 }
 
 func TestProtectedCacheCollection_Decrypt_ReturnsFirstMatch(t *testing.T) {
-	first := NewProtectedCache(newTestDataEncryptionKey(t), nil)
-	second := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	first := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
+	second := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	if err := first.Add("name", []byte("from-first")); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
@@ -45,8 +45,8 @@ func TestProtectedCacheCollection_Decrypt_ReturnsFirstMatch(t *testing.T) {
 
 func TestProtectedCacheCollection_Decrypt_NoSourceHasName_ReturnsZero(t *testing.T) {
 	collection := NewProtectedCacheCollection().
-		Add(NewProtectedCache(newTestDataEncryptionKey(t), nil)).
-		Add(NewProtectedCache(newTestDataEncryptionKey(t), nil))
+		Add(NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)).
+		Add(NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil))
 
 	written, err := collection.Decrypt("missing", make([]byte, 16))
 	if err != nil {
@@ -58,8 +58,8 @@ func TestProtectedCacheCollection_Decrypt_NoSourceHasName_ReturnsZero(t *testing
 }
 
 func TestProtectedCacheCollection_TryGetMaxDecryptedLength_ChecksSourcesInOrder(t *testing.T) {
-	first := NewProtectedCache(newTestDataEncryptionKey(t), nil)
-	second := NewProtectedCache(newTestDataEncryptionKey(t), nil)
+	first := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
+	second := NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil)
 	if err := second.Add("name", []byte("from-second")); err != nil {
 		t.Fatalf("Add() error = %v", err)
 	}
@@ -76,7 +76,7 @@ func TestProtectedCacheCollection_TryGetMaxDecryptedLength_ChecksSourcesInOrder(
 }
 
 func TestProtectedCacheCollection_TryGetMaxDecryptedLength_NoSourceHasName_ReturnsFalse(t *testing.T) {
-	collection := NewProtectedCacheCollection().Add(NewProtectedCache(newTestDataEncryptionKey(t), nil))
+	collection := NewProtectedCacheCollection().Add(NewDefaultProtectedCache(newTestDataEncryptionKey(t), nil))
 
 	if _, found := collection.TryGetMaxDecryptedLength("missing"); found {
 		t.Error("TryGetMaxDecryptedLength() found = true, want false")

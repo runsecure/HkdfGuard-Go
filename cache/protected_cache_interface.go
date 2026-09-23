@@ -1,4 +1,4 @@
-package abstractions
+package cache
 
 // ProtectedCache is the read/write surface of a highly concurrent name -> encrypted-value cache
 // backed by a single DataEncryptionKey. Add/AddOrUpdate protect and store plaintext under a

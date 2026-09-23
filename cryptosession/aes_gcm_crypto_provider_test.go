@@ -158,6 +158,32 @@ func TestAesGcmCryptoProvider_AfterClose_EncryptDecryptReturnErrClosed(t *testin
 	}
 }
 
+func TestAesGcmCryptoProvider_GetEncryptedAllocationLength_AddsNonceAndTagOverhead(t *testing.T) {
+	wrapper := &fakeKeyWrapper{}
+	provider, err := NewAesGcmCryptoProvider(wrapper, []byte("wrapped"), 60)
+	if err != nil {
+		t.Fatalf("NewAesGcmCryptoProvider() error = %v", err)
+	}
+	defer provider.Close()
+
+	if got, want := provider.GetEncryptedAllocationLength(10), 10+12+16; got != want {
+		t.Errorf("GetEncryptedAllocationLength(10) = %d, want %d", got, want)
+	}
+}
+
+func TestAesGcmCryptoProvider_GetDecryptedAllocationLength_RemovesNonceAndTagOverhead(t *testing.T) {
+	wrapper := &fakeKeyWrapper{}
+	provider, err := NewAesGcmCryptoProvider(wrapper, []byte("wrapped"), 60)
+	if err != nil {
+		t.Fatalf("NewAesGcmCryptoProvider() error = %v", err)
+	}
+	defer provider.Close()
+
+	if got, want := provider.GetDecryptedAllocationLength(10+12+16), 10; got != want {
+		t.Errorf("GetDecryptedAllocationLength(38) = %d, want %d", got, want)
+	}
+}
+
 func TestAesGcmCryptoProvider_Close_IsIdempotent(t *testing.T) {
 	wrapper := &fakeKeyWrapper{}
 	provider, err := NewAesGcmCryptoProvider(wrapper, []byte("wrapped"), 60)

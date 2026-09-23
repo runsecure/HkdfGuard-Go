@@ -1,5 +1,5 @@
-// Package cache is the default abstractions.ProtectedCache implementation and an aggregating
-// abstractions.ProtectedReadOnlyCache.
+// Package cache is the default ProtectedCache implementation and an aggregating
+// ProtectedReadOnlyCache.
 package cache
 
 import (
@@ -12,34 +12,35 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-// ProtectedCache is the default abstractions.ProtectedCache. Backed by a single, already-built
+// DefaultProtectedCache is the default ProtectedCache. Backed by a single, already-built
 // abstractions.DataEncryptionKey - every Add/AddOrUpdate encrypts through it (via the embedded
-// *abstractions.ProtectedCacheBase), every Decrypt reveals through it. Add rejects a duplicate
-// name even under concurrent callers (see ProtectedCacheBase.TryAddEncrypted); AddOrUpdate's
-// upsert and Decrypt's reads are otherwise lock-free, so this holds up under highly concurrent
-// access in every direction. Nothing here ever holds plaintext beyond the duration of a single
+// *ProtectedCacheBase), every Decrypt reveals through it. Add rejects a duplicate name even under
+// concurrent callers (see ProtectedCacheBase.TryAddEncrypted); AddOrUpdate's upsert and Decrypt's
+// reads are otherwise lock-free, so this holds up under highly concurrent access in every
+// direction. Nothing here ever holds plaintext beyond the duration of a single
 // Add/AddOrUpdate/Decrypt call.
 //
 // logger is optional (nil is a silent no-op - see diagnostics.SensitiveOperationLogged) and,
 // when supplied, receives a debug log per sensitive operation and an error log per failure
 // alongside the existing tracing/CacheMetrics.Operations telemetry.
-type ProtectedCache struct {
-	*abstractions.ProtectedCacheBase
+type DefaultProtectedCache struct {
+	*ProtectedCacheBase
 	logger *slog.Logger
 }
 
-var _ abstractions.ProtectedCache = (*ProtectedCache)(nil)
+var _ ProtectedCache = (*DefaultProtectedCache)(nil)
 
-// NewProtectedCache builds a ProtectedCache backed by dataEncryptionKey. logger may be nil.
-func NewProtectedCache(dataEncryptionKey abstractions.DataEncryptionKey, logger *slog.Logger) *ProtectedCache {
-	return &ProtectedCache{
-		ProtectedCacheBase: abstractions.NewProtectedCacheBase(dataEncryptionKey),
+// NewDefaultProtectedCache builds a DefaultProtectedCache backed by dataEncryptionKey. logger
+// may be nil.
+func NewDefaultProtectedCache(dataEncryptionKey abstractions.DataEncryptionKey, logger *slog.Logger) *DefaultProtectedCache {
+	return &DefaultProtectedCache{
+		ProtectedCacheBase: NewProtectedCacheBase(dataEncryptionKey),
 		logger:             logger,
 	}
 }
 
-// Add implements abstractions.ProtectedCache.
-func (c *ProtectedCache) Add(name string, plaintext []byte) (err error) {
+// Add implements ProtectedCache.
+func (c *DefaultProtectedCache) Add(name string, plaintext []byte) (err error) {
 	tel := diagnostics.Cache
 	_, span := tel.Tracer().Start(context.Background(), diagnostics.ActivityNames.Cache.Add)
 	defer span.End()
@@ -71,8 +72,8 @@ func (c *ProtectedCache) Add(name string, plaintext []byte) (err error) {
 	return nil
 }
 
-// AddOrUpdate implements abstractions.ProtectedCache.
-func (c *ProtectedCache) AddOrUpdate(name string, plaintext []byte) (err error) {
+// AddOrUpdate implements ProtectedCache.
+func (c *DefaultProtectedCache) AddOrUpdate(name string, plaintext []byte) (err error) {
 	tel := diagnostics.Cache
 	_, span := tel.Tracer().Start(context.Background(), diagnostics.ActivityNames.Cache.AddOrUpdate)
 	defer span.End()

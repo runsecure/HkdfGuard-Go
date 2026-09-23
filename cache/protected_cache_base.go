@@ -1,10 +1,11 @@
-package abstractions
+package cache
 
 import (
 	"context"
 	"strings"
 	"sync"
 
+	"github.com/runsecure/hkdfguard-go/abstractions"
 	"github.com/runsecure/hkdfguard-go/diagnostics"
 	"go.opentelemetry.io/otel/attribute"
 )
@@ -21,7 +22,7 @@ import (
 // no virtual dispatch through embedding, so TryPopulate is a settable func field instead - a
 // concrete cache type embeds *ProtectedCacheBase and sets the field in its own constructor.
 type ProtectedCacheBase struct {
-	dataEncryptionKey DataEncryptionKey
+	dataEncryptionKey abstractions.DataEncryptionKey
 
 	mu   sync.RWMutex
 	data map[string][]byte
@@ -36,7 +37,7 @@ var _ ProtectedReadOnlyCache = (*ProtectedCacheBase)(nil)
 
 // NewProtectedCacheBase builds a ProtectedCacheBase backed by dataEncryptionKey, with no
 // TryPopulate hook (set the field afterward if one is needed).
-func NewProtectedCacheBase(dataEncryptionKey DataEncryptionKey) *ProtectedCacheBase {
+func NewProtectedCacheBase(dataEncryptionKey abstractions.DataEncryptionKey) *ProtectedCacheBase {
 	return &ProtectedCacheBase{
 		dataEncryptionKey: dataEncryptionKey,
 		data:              make(map[string][]byte),
@@ -103,7 +104,7 @@ func (c *ProtectedCacheBase) tryGetEncrypted(name string) ([]byte, bool) {
 }
 
 // SetEncrypted stores encrypted under name, keyed case-insensitively. Exported for concrete
-// cache types (e.g. a cache package's ProtectedCache Add/AddOrUpdate) embedding
+// cache types (e.g. this package's own DefaultProtectedCache Add/AddOrUpdate) embedding
 // *ProtectedCacheBase to populate directly - not meant for other callers.
 func (c *ProtectedCacheBase) SetEncrypted(name string, encrypted []byte) {
 	c.mu.Lock()

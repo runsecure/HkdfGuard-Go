@@ -1,4 +1,4 @@
-package abstractions
+package cache
 
 // ProtectedReadOnlyCache is the read surface of a highly concurrent name -> encrypted-value
 // cache backed by a single DataEncryptionKey. Names are compared case-insensitively. Decrypt
