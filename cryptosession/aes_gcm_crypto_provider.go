@@ -14,6 +14,16 @@ import (
 // ErrClosed is returned by AesGcmCryptoProvider.Encrypt/Decrypt once Close has been called.
 var ErrClosed = errors.New("cryptosession: AesGcmCryptoProvider is closed")
 
+// extraAllocationLength is how many more bytes ciphertext needs than the plaintext it encloses:
+// a nonce and a tag (see aesGcmCryptoSession's nonce(12) || ciphertext || tag(16) layout).
+const extraAllocationLength = nonceSize + tagSize
+
+// pipelineExpirySeconds is the fixed, nominal expiry newAesGcmCryptoProviderForPipeline records
+// its session under. It's never actually revisited - a pipeline provider's key is already
+// plaintext and is never refreshed - but AesGcmCryptoProvider always has some expirySeconds
+// value, if only for its zero value not to look like an immediate expiry.
+const pipelineExpirySeconds = 7200
+
 // AesGcmCryptoProvider is a cached, key-bound AES-256-GCM abstractions.CryptoProvider: it reveals
 // wrapped's plaintext DEK via keyWrapper once eagerly at construction, then proactively refreshes
 // (re-reveals and rebuilds) it every expirySeconds in the background for as long as the provider
@@ -61,6 +71,25 @@ func NewAesGcmCryptoProvider(keyWrapper abstractions.KeyWrapper, wrapped []byte,
 	return p, nil
 }
 
+// newAesGcmCryptoProviderForPipeline builds a provider around notWrapped directly - notWrapped
+// is already a plaintext DEK (never wrapped or unwrapped through keyWrapper, which this
+// constructor holds only so Close's ArrayUtility.ZeroMemory-style symmetry with the wrapped case
+// still applies to notWrapped). There is no background refresh: the key never changes, so there
+// is nothing to refresh.
+func newAesGcmCryptoProviderForPipeline(keyWrapper abstractions.KeyWrapper, notWrapped []byte) (*AesGcmCryptoProvider, error) {
+	session, err := newAesGcmCryptoSession(notWrapped)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AesGcmCryptoProvider{
+		keyWrapper:    keyWrapper,
+		wrapped:       notWrapped,
+		expirySeconds: pipelineExpirySeconds,
+		current:       session,
+	}, nil
+}
+
 // Encrypt implements abstractions.CryptoProvider.
 func (p *AesGcmCryptoProvider) Encrypt(plaintext []byte, aad []byte, result []byte) (int, error) {
 	session, err := p.session()
@@ -79,8 +108,19 @@ func (p *AesGcmCryptoProvider) Decrypt(ciphertext []byte, aad []byte, result []b
 	return session.decrypt(ciphertext, aad, result)
 }
 
-// Close implements abstractions.CryptoProvider (io.Closer). It stops the background refresh loop
-// and zeroes the current session's key. Calling Close more than once is a no-op.
+// GetEncryptedAllocationLength implements abstractions.CryptoProvider.
+func (p *AesGcmCryptoProvider) GetEncryptedAllocationLength(length int) int {
+	return length + extraAllocationLength
+}
+
+// GetDecryptedAllocationLength implements abstractions.CryptoProvider.
+func (p *AesGcmCryptoProvider) GetDecryptedAllocationLength(length int) int {
+	return length - extraAllocationLength
+}
+
+// Close implements abstractions.CryptoProvider (io.Closer). It stops the background refresh
+// loop, zeroes wrapped (the plaintext DEK itself, for a pipeline provider - otherwise just its
+// wrapped bytes), and zeroes the current session's key. Calling Close more than once is a no-op.
 func (p *AesGcmCryptoProvider) Close() error {
 	p.mu.Lock()
 	if p.closed {
@@ -96,6 +136,8 @@ func (p *AesGcmCryptoProvider) Close() error {
 		p.cancel()
 		<-p.done
 	}
+
+	abstractions.ZeroMemory(p.wrapped)
 
 	if current != nil {
 		current.close()

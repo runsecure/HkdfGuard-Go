@@ -20,4 +20,13 @@ type CryptoProvider interface {
 	// Decrypt decrypts ciphertext, writing the decrypted bytes into result and returning the
 	// number of bytes written. aad may be nil.
 	Decrypt(ciphertext []byte, aad []byte, result []byte) (int, error)
+
+	// GetEncryptedAllocationLength returns how large a buffer must be to hold length bytes of
+	// plaintext once encrypted, so a caller can size a result buffer before calling Encrypt.
+	GetEncryptedAllocationLength(length int) int
+
+	// GetDecryptedAllocationLength returns how large a buffer must be to hold the decrypted
+	// plaintext for length bytes of ciphertext, so a caller can size a result buffer before
+	// calling Decrypt.
+	GetDecryptedAllocationLength(length int) int
 }
